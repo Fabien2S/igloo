@@ -14,18 +14,24 @@ public readonly struct Identifier : IEquatable<Identifier>, ISpanParsable<Identi
 
     private readonly int _separator;
 
-    private Identifier(IdentifierPart parsed)
+    private Identifier(ReadOnlySpan<char> @namespace, ReadOnlySpan<char> path)
     {
-        Debug.Assert(IsAllowedNamespace(parsed.Namespace), "parsed.IsNamespaceValid()");
-        Debug.Assert(IsAllowedPath(parsed.Path), "parsed.IsPathValid()");
+        Debug.Assert(IsAllowedNamespace(@namespace), "IsAllowedNamespace(namespace)");
+        Debug.Assert(IsAllowedPath(path), "IsAllowedPath(path)");
 
-        _key = parsed.ToString();
-        _separator = parsed.Namespace.Length;
+        var separatorSpan = new ReadOnlySpan<char>(Separator);
+        _key = string.Concat(@namespace, separatorSpan, path);
+        _separator = @namespace.Length;
     }
 
     public bool Equals(Identifier other)
     {
         return string.Equals(_key, other._key, StringComparison.Ordinal);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is Identifier other && Equals(other);
     }
 
     public override int GetHashCode()
@@ -36,6 +42,13 @@ public readonly struct Identifier : IEquatable<Identifier>, ISpanParsable<Identi
     public override string ToString()
     {
         return _key ?? string.Empty;
+    }
+
+    private static void Decompose(ReadOnlySpan<char> input, out ReadOnlySpan<char> @namespace, out ReadOnlySpan<char> path)
+    {
+        var separatorIndex = input.IndexOf(Separator);
+        @namespace = separatorIndex <= 0 ? DefaultNamespace : input[..separatorIndex];
+        path = input[(separatorIndex + 1)..];
     }
 
     public static bool IsAllowedNamespace(char c)
@@ -86,43 +99,44 @@ public readonly struct Identifier : IEquatable<Identifier>, ISpanParsable<Identi
 
     public static Identifier Parse(ReadOnlySpan<char> input, IFormatProvider? provider)
     {
-        var parsed = Decompose(input);
+        Decompose(input, out var @namespace, out var path);
 
-        if (!IsAllowedNamespace(parsed.Namespace))
-            throw new FormatException($"Invalid namespace {parsed.Namespace} (must be [a-z0-9_-.])");
+        if (!IsAllowedNamespace(@namespace))
+            throw new FormatException($"Invalid namespace {@namespace} (must be [a-z0-9_-.])");
 
-        if (!IsAllowedPath(parsed.Path))
-            throw new FormatException($"Invalid namespace {parsed.Namespace} (must be [a-z0-9_-./])");
+        if (!IsAllowedPath(path))
+            throw new FormatException($"Invalid path {path} (must be [a-z0-9_-./])");
 
-        return new Identifier(parsed);
+        return new Identifier(@namespace, path);
     }
 
     public static bool TryParse(ReadOnlySpan<char> input, IFormatProvider? provider, out Identifier result)
     {
-        var parsed = Decompose(input);
+        Decompose(input, out var @namespace, out var path);
 
-        if (!IsAllowedNamespace(parsed.Namespace))
+        if (!IsAllowedNamespace(@namespace))
         {
             result = default;
             return false;
         }
 
-        if (!IsAllowedPath(parsed.Path))
+        if (!IsAllowedPath(path))
         {
             result = default;
             return false;
         }
 
-        result = new Identifier(parsed);
+        result = new Identifier(@namespace, path);
         return true;
     }
 
-    public static IdentifierPart Decompose(ReadOnlySpan<char> input)
+    public static bool operator ==(Identifier left, Identifier right)
     {
-        var separatorIndex = input.IndexOf(Separator);
-        return new IdentifierPart(
-            separatorIndex <= 0 ? DefaultNamespace : input[..separatorIndex],
-            input[(separatorIndex + 1)..]
-        );
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(Identifier left, Identifier right)
+    {
+        return !(left == right);
     }
 }
