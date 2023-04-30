@@ -7,7 +7,7 @@ public class IdentifierTest
     [Fact]
     public void IsAllowedNamespace_InputIsDefaultNamespace_ReturnsTrue()
     {
-        var allowed = Identifier.IsAllowedNamespace(Identifier.DefaultNamespace);
+        var allowed = Identifier.IsAllowedNamespace(Minecraft.Namespace);
         Assert.True(allowed);
     }
 
@@ -59,6 +59,6 @@ public class IdentifierTest
     public void TryParse_InputContainsPathOnly_UsesDefaultNamespace(string id)
     {
         var identifier = Identifier.Parse(id, NumberFormatInfo.InvariantInfo);
-        Assert.Equal(Identifier.DefaultNamespace, identifier.Namespace.ToString());
+        Assert.Equal(Minecraft.Namespace, identifier.Namespace.ToString());
     }
 }

@@ -4,8 +4,7 @@ namespace Igloo.Common;
 
 public readonly struct Identifier : IEquatable<Identifier>, ISpanParsable<Identifier>
 {
-    public const char Separator = ':';
-    public const string DefaultNamespace = "minecraft";
+    private const char Separator = ':';
 
     public ReadOnlySpan<char> Namespace => _key.AsSpan(0, _separator);
     public ReadOnlySpan<char> Path => _key.AsSpan(_separator + 1);
@@ -47,7 +46,7 @@ public readonly struct Identifier : IEquatable<Identifier>, ISpanParsable<Identi
     private static void Decompose(ReadOnlySpan<char> input, out ReadOnlySpan<char> @namespace, out ReadOnlySpan<char> path)
     {
         var separatorIndex = input.IndexOf(Separator);
-        @namespace = separatorIndex <= 0 ? DefaultNamespace : input[..separatorIndex];
+        @namespace = separatorIndex <= 0 ? Minecraft.Namespace : input[..separatorIndex];
         path = input[(separatorIndex + 1)..];
     }
 
@@ -87,6 +86,17 @@ public readonly struct Identifier : IEquatable<Identifier>, ISpanParsable<Identi
         return true;
     }
 
+    public static Identifier Create(ReadOnlySpan<char> @namespace, ReadOnlySpan<char> path)
+    {
+        if (!IsAllowedNamespace(@namespace))
+            throw new FormatException($"Invalid namespace {@namespace} (must be [a-z0-9_-.])");
+
+        if (!IsAllowedPath(path))
+            throw new FormatException($"Invalid path {path} (must be [a-z0-9_-./])");
+
+        return new Identifier(@namespace, path);
+    }
+
     public static Identifier Parse(string input, IFormatProvider? provider)
     {
         return Parse(input.AsSpan(), provider);
@@ -100,14 +110,7 @@ public readonly struct Identifier : IEquatable<Identifier>, ISpanParsable<Identi
     public static Identifier Parse(ReadOnlySpan<char> input, IFormatProvider? provider)
     {
         Decompose(input, out var @namespace, out var path);
-
-        if (!IsAllowedNamespace(@namespace))
-            throw new FormatException($"Invalid namespace {@namespace} (must be [a-z0-9_-.])");
-
-        if (!IsAllowedPath(path))
-            throw new FormatException($"Invalid path {path} (must be [a-z0-9_-./])");
-
-        return new Identifier(@namespace, path);
+        return Create(@namespace, path);
     }
 
     public static bool TryParse(ReadOnlySpan<char> input, IFormatProvider? provider, out Identifier result)
