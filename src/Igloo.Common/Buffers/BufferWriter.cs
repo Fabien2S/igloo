@@ -5,7 +5,7 @@ namespace Igloo.Common.Buffers;
 /// <summary>
 ///     Provides a big-endian writer for binary data
 /// </summary>
-public readonly struct BufferWriter
+public readonly ref struct BufferWriter
 {
     private readonly IBufferWriter<byte> _writer;
 

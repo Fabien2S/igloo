@@ -21,95 +21,147 @@ public partial class NetworkConnection
     {
         while (!_cts.IsCancellationRequested)
         {
-            var memory = writer.GetMemory();
-            var received = await _socket.ReceiveAsync(memory, _cts.Token).ConfigureAwait(false);
-            if (received == 0)
+            try
             {
-                // disconnected
+                var memory = writer.GetMemory(4096);
+                var received = await _socket.ReceiveAsync(memory, _cts.Token).ConfigureAwait(false);
+                if (received == 0)
+                {
+                    Close(NetworkReason.ClosedRemotely);
+                    break;
+                }
+
+                writer.Advance(received);
+            }
+            catch (Exception e)
+            {
+                if (HandleException(e, "Failed to receive data"))
+                {
+                    Close(_cts.IsCancellationRequested ? NetworkReason.ClosedLocally : NetworkReason.SocketError);
+                }
+                else
+                {
+                    Close(NetworkReason.ClosedRemotely);
+                }
+
                 break;
             }
 
-            writer.Advance(received);
-
-            // notify the reader
             var result = await writer.FlushAsync().ConfigureAwait(false);
             if (result.IsCompleted) break;
         }
 
         await writer.CompleteAsync().ConfigureAwait(false);
+        await _outPipe.Writer.CompleteAsync().ConfigureAwait(false);
     }
 
     private async Task ProcessIncomingAsync(PipeReader reader)
     {
         while (!_cts.IsCancellationRequested)
         {
-            var result = await reader.ReadAsync(_cts.Token).ConfigureAwait(false);
+            ReadResult result;
+            try
+            {
+                result = await reader.ReadAsync(_cts.Token).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                HandleException(e, "Failed to read from pipe");
+                break;
+            }
+
             if (result.IsCanceled)
             {
                 Logger.LogDebug("{}: operation was cancelled", nameof(ProcessIncomingAsync));
                 break;
             }
 
-            var buffer = result.Buffer;
-
             try
             {
-                HandlePacket(buffer);
-
-                if (result.IsCompleted)
+                var buffer = result.Buffer;
+                if (HandlePacket(buffer, out var read))
                 {
-                    Logger.LogDebug("{}: operation was completed", nameof(ProcessIncomingAsync));
-                    break;
+                    var consumed = buffer.GetPosition(read);
+                    reader.AdvanceTo(consumed);
+                }
+                else
+                {
+                    var examined = buffer.GetPosition(read);
+                    reader.AdvanceTo(buffer.Start, examined);
                 }
             }
-            finally
+            catch (Exception e)
             {
-                reader.AdvanceTo(buffer.Start, buffer.End);
+                HandleException(e, "Protocol error");
+                Close(NetworkReason.ProtocolError);
+                break;
+            }
+
+            if (result.IsCompleted)
+            {
+                Logger.LogDebug("{}: operation was completed", nameof(ProcessIncomingAsync));
+                break;
             }
         }
 
         await reader.CompleteAsync();
     }
 
-    private void HandlePacket(ReadOnlySequence<byte> sequence)
+    private bool HandlePacket(ReadOnlySequence<byte> sequence, out int read)
     {
-        var arrayPool = ArrayPool<byte>.Shared;
-
-        Logger.LogDebug("Received sequence {}", sequence.ToString());
-        var buffer = arrayPool.Rent((int)sequence.Length);
-        try
+        var headerReader = new SequenceReader<byte>(sequence);
+        if (!headerReader.TryReadVarInt32(out var packetLength, out var headerSize))
         {
-            sequence.CopyTo(buffer);
+            // packet length not fully received yet
+            read = headerSize;
+            return false;
+        }
 
-            var reader = new BufferReader(buffer);
+        if (headerSize > NetworkProtocol.PacketHeaderMaxSize)
+        {
+            // Packet too large
+            Close(NetworkReason.ProtocolError);
+            read = 0;
+            return false;
+        }
 
-            var packetLength = reader.ReadVarInt32(NetworkProtocol.PacketHeaderMaxSize);
-            var packetBuffer = reader.ReadBytes(packetLength);
+        if (!headerReader.TryReadExact(packetLength, out var packetSequence))
+        {
+            // packet not fully received yet
+            read = headerSize;
+            return false;
+        }
 
-            var packetReader = new BufferReader(packetBuffer);
-            var packetId = packetReader.ReadVarInt32();
-            switch (packetId)
-            {
-                case 0:
-                    HandshakePacket.Deserialize(ref packetReader, out var handshakePacket);
-                    Logger.LogInformation("Received handshake: {}", handshakePacket);
+        // TODO Replace ToArray() with pooling
+        var packetBuffer = packetSequence.ToArray();
+        var packetReader = new BufferReader(packetBuffer);
 
-                    if (handshakePacket.RequestedState == HandshakePacket.State.Login)
-                    {
-                        _ = WriteAsync(new DisconnectPacket("""
-                            {"text":"Test","color":"red"}
+        var packetId = packetReader.ReadVarInt32();
+        switch (packetId)
+        {
+            case 0:
+                HandshakePacket.Deserialize(ref packetReader, out var handshakePacket);
+                Logger.LogInformation("Received handshake: {}", handshakePacket);
+
+                if (handshakePacket.RequestedState == HandshakePacket.State.Login)
+                {
+                    _ = WriteAsync(new DisconnectPacket("""
+                        {"text":"Test","color":"red"}
                         """));
-                    }
+                }
+                else
+                {
+                    Close(NetworkReason.ClosedLocally);
+                }
 
-                    break;
-                default:
-                    Logger.LogWarning("Invalid packet: {}", packetId);
-                    break;
-            }
+                break;
+            default:
+                Logger.LogWarning("Invalid packet {} received from {}", packetId, this);
+                Close(NetworkReason.ClosedLocally);
+                break;
         }
-        finally
-        {
-            arrayPool.Return(buffer);
-        }
+
+        read = (int)headerReader.Consumed;
+        return true;
     }
 }

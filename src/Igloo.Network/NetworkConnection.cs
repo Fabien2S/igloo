@@ -23,6 +23,8 @@ public partial class NetworkConnection
     private Task? _readTask;
     private Task? _writeTask;
 
+    private NetworkReason _reason;
+
     public NetworkConnection(Socket socket)
     {
         _socket = socket;
@@ -39,13 +41,52 @@ public partial class NetworkConnection
         });
     }
 
-    private static async void WaitForClosingAsync(Task readTask, Task writeTask)
+    private async void WaitForClosingAsync(Task readTask, Task writeTask)
     {
-        await Task.WhenAll(readTask, writeTask).ConfigureAwait(false);
-        // TODO Closing
+        try
+        {
+            await Task.WhenAll(readTask, writeTask).ConfigureAwait(false);
+            Logger.LogInformation("Closing connection {} (reason: {})", this, _reason);
+        }
+        catch (Exception e)
+        {
+            HandleException(e, "Waiting for closing");
+        }
+        finally
+        {
+            try
+            {
+                _socket.Shutdown(SocketShutdown.Both);
+            }
+            catch (Exception e)
+            {
+                HandleException(e, "Shutting down socket");
+            }
+            finally
+            {
+                _socket.Close();
+            }
+        }
     }
 
-    public void Listen()
+    private bool HandleException(Exception exception, string details)
+    {
+        switch (exception)
+        {
+            case ObjectDisposedException:
+            case OperationCanceledException:
+            case SocketException
+            {
+                SocketErrorCode: SocketError.OperationAborted or SocketError.ConnectionReset or SocketError.TimedOut or SocketError.NetworkReset
+            }:
+                return false;
+            default:
+                Logger.LogCritical(exception, details, Array.Empty<object>());
+                return true;
+        }
+    }
+
+    internal void Listen()
     {
         _readTask = ReceiveAsync();
         _writeTask = SendAsync();
@@ -57,10 +98,13 @@ public partial class NetworkConnection
         await _outChannel.Writer.WriteAsync(new WritablePacket<TPacket>(packet), _cts.Token);
     }
 
-    public async ValueTask SendAsync(ReadOnlyMemory<byte> data)
+    public void Close(NetworkReason reason)
     {
-        var writer = _outPipe.Writer;
-        await writer.WriteAsync(data).ConfigureAwait(false);
+        if (_reason != NetworkReason.Ok)
+            return;
+
+        _reason = reason;
+        _cts.Cancel();
     }
 
     public override string ToString()

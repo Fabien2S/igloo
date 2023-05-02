@@ -1,10 +1,11 @@
-﻿using Igloo.Common.Buffers;
+﻿using System.Buffers;
+using Igloo.Common.Buffers;
 
 namespace Igloo.Network.Packets;
 
 public interface IWritablePacket
 {
-    void Serialize(ref BufferWriter writer);
+    void Serialize(IBufferWriter<byte> buffer);
 }
 
 public class WritablePacket<T> : IWritablePacket where T : struct, INetworkPacket<T>
@@ -16,8 +17,9 @@ public class WritablePacket<T> : IWritablePacket where T : struct, INetworkPacke
         _packet = packet;
     }
 
-    public void Serialize(ref BufferWriter writer)
+    public void Serialize(IBufferWriter<byte> buffer)
     {
+        var writer = new BufferWriter(buffer);
         writer.WriteVarInt32(T.Id);
         T.Serialize(ref writer, _packet);
     }

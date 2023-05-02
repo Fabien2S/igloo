@@ -25,19 +25,20 @@ public partial class NetworkConnection
             var packet = await reader.ReadAsync(_cts.Token).ConfigureAwait(false);
             Logger.LogDebug("Sending packet {} to {}", packet, this);
 
-
             var bodyBuffer = new ArrayBufferWriter<byte>();
-            var bodyWriter = new BufferWriter(bodyBuffer);
-            packet.Serialize(ref bodyWriter);
+            packet.Serialize(bodyBuffer);
 
-            var packetWriter = new BufferWriter(writer);
-            packetWriter.WriteVarInt32(bodyBuffer.WrittenCount, out var headerSize);
-            packetWriter.WriteBytes(bodyBuffer.WrittenSpan);
+            static int PrependVarIntLength(PipeWriter writer, ReadOnlySpan<byte> packet)
+            {
+                var bufferWriter = new BufferWriter(writer);
+                bufferWriter.WriteVarInt32(packet.Length, out var packetHeader);
+                bufferWriter.WriteBytes(packet);
+                return packetHeader + packet.Length;
+            }
 
+            var written = PrependVarIntLength(writer, bodyBuffer.WrittenSpan);
+            writer.Advance(written);
 
-            writer.Advance(headerSize + bodyBuffer.WrittenCount);
-
-            // notify the reader
             var result = await writer.FlushAsync().ConfigureAwait(false);
             if (result.IsCompleted) break;
         }
@@ -47,33 +48,43 @@ public partial class NetworkConnection
     {
         while (!_cts.IsCancellationRequested)
         {
-            var result = await reader.ReadAsync(_cts.Token).ConfigureAwait(false);
-
-            if (result.IsCanceled)
+            ReadResult result;
+            try
             {
-                Logger.LogDebug("{}: operation was cancelled", nameof(SendAsync));
+                result = await reader.ReadAsync(_cts.Token).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                HandleException(e, "Failed to read from pipe");
                 break;
             }
 
+            if (result.IsCanceled)
+            {
+                Logger.LogDebug("{}: operation was cancelled", nameof(SendOutgoingBytesAsync));
+                break;
+            }
+
+            var buffer = result.Buffer;
+
             try
             {
-                var buffer = result.Buffer;
+                Logger.LogDebug("Sending {} byte(s) to {}", buffer.Length, this);
                 var sent = await SendBufferAsync(buffer).ConfigureAwait(false);
-                Logger.LogDebug("Sending {} byte(s) to {}", sent, this);
 
                 var consumed = buffer.GetPosition(sent);
                 reader.AdvanceTo(consumed);
             }
             catch (Exception e)
             {
-                Logger.LogCritical(e, "{}: failed to send data", nameof(SendAsync));
                 _cts.Cancel(false);
+                HandleException(e, "Failed to send data");
                 break;
             }
 
             if (result.IsCompleted)
             {
-                Logger.LogDebug("{}: operation was completed", nameof(SendAsync));
+                Logger.LogDebug("{}: operation was completed", nameof(SendOutgoingBytesAsync));
                 break;
             }
         }

@@ -1,4 +1,6 @@
-﻿namespace Igloo.Common.Buffers;
+﻿using System.Buffers;
+
+namespace Igloo.Common.Buffers;
 
 public static class BufferVarInt
 {
@@ -8,6 +10,29 @@ public static class BufferVarInt
     private const byte SegmentBitCount = 7;
 
     private const byte ContinueBit = 0b10000000;
+
+    public static bool TryReadVarInt32(ref this SequenceReader<byte> reader, out int value, out int size)
+    {
+        value = 0;
+        size = 0;
+
+        byte read;
+        do
+        {
+            if (!reader.TryRead(out read))
+                return false;
+
+            value |= (read & SegmentBits) << (size * SegmentBitCount);
+            size++;
+
+            if (size >= reader.Length)
+                return false;
+            if (size >= MaxSize)
+                return false;
+        } while ((read & ContinueBit) == ContinueBit);
+
+        return true;
+    }
 
     public static int ReadVarInt32(ref this BufferReader reader, int maxSize = MaxSize)
     {
