@@ -34,7 +34,7 @@ public static class BufferVarInt
         return true;
     }
 
-    public static int ReadVarInt32(ref this BufferReader reader, int maxSize = MaxSize)
+    public static int ReadVarInt32(ref this BufferReader reader)
     {
         var size = 0;
         var value = 0;
@@ -46,7 +46,7 @@ public static class BufferVarInt
             value |= (read & SegmentBits) << (size * SegmentBitCount);
             size++;
 
-            if (size >= maxSize)
+            if (size >= MaxSize)
                 throw new IOException("VarInt is too long");
         } while ((read & ContinueBit) == ContinueBit);
 
