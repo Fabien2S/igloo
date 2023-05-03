@@ -10,6 +10,8 @@ namespace Igloo.Network;
 
 public partial class NetworkConnection
 {
+    private readonly ArrayBufferWriter<byte> _outgoingBuffer = new();
+
     private async Task SendAsync()
     {
         var packetEncoder = EncodeOutgoingPacketAsync(_outChannel.Reader, _outPipe.Writer);
@@ -18,25 +20,31 @@ public partial class NetworkConnection
         await Task.WhenAll(packetEncoder, sendTask).ConfigureAwait(false);
     }
 
-    private async Task EncodeOutgoingPacketAsync(ChannelReader<IWritablePacket> reader, PipeWriter writer)
+    private async Task EncodeOutgoingPacketAsync(ChannelReader<PacketSerializer> reader, PipeWriter writer)
     {
+        static void WritePacket(IBufferWriter<byte> buffer, PacketSerializer serializer)
+        {
+            var writer = new BufferWriter(buffer);
+            serializer(ref writer);
+        }
+
+        static int PrependVarIntLength(PipeWriter writer, ReadOnlySpan<byte> packet)
+        {
+            var bufferWriter = new BufferWriter(writer);
+            bufferWriter.WriteVarInt32(packet.Length, out var packetHeader);
+            bufferWriter.WriteBytes(packet);
+            return packetHeader + packet.Length;
+        }
+
         while (!_cts.IsCancellationRequested)
         {
-            var packet = await reader.ReadAsync(_cts.Token).ConfigureAwait(false);
-            Logger.LogDebug("Sending packet {} to {}", packet, this);
+            var packetSerializer = await reader.ReadAsync(_cts.Token).ConfigureAwait(false);
+            Logger.LogDebug("Sending packet {} to {}", packetSerializer, this);
 
-            var bodyBuffer = new ArrayBufferWriter<byte>();
-            packet.Serialize(bodyBuffer);
+            _outgoingBuffer.Clear();
+            WritePacket(_outgoingBuffer, packetSerializer);
 
-            static int PrependVarIntLength(PipeWriter writer, ReadOnlySpan<byte> packet)
-            {
-                var bufferWriter = new BufferWriter(writer);
-                bufferWriter.WriteVarInt32(packet.Length, out var packetHeader);
-                bufferWriter.WriteBytes(packet);
-                return packetHeader + packet.Length;
-            }
-
-            var written = PrependVarIntLength(writer, bodyBuffer.WrittenSpan);
+            var written = PrependVarIntLength(writer, _outgoingBuffer.WrittenSpan);
             writer.Advance(written);
 
             var result = await writer.FlushAsync().ConfigureAwait(false);

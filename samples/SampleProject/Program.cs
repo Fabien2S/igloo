@@ -27,10 +27,13 @@ var logger = LogManager.Create(typeof(Program));
 
 logger.LogInformation("Starting server...");
 
-var result = server.Run();
+var result = await server.RunAsync();
+
 if (result != GameServerResult.Ok)
 {
     logger.LogError("Server exited with {}", result);
 }
-
-logger.LogInformation("Server stopped");
+else
+{
+    logger.LogInformation("Server stopped");
+}

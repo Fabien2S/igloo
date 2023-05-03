@@ -1,24 +1,35 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using Igloo.Common.Logging;
+using Igloo.Common.Timings;
 using Microsoft.Extensions.Logging;
 
 namespace Igloo.Network;
 
-public class NetworkServer : IDisposable
+public class NetworkServer : ITickable, IDisposable
 {
     private static readonly ILogger<NetworkServer> Logger = LogManager.Create<NetworkServer>();
 
     private readonly Socket _listenSocket;
-    private readonly SocketAsyncEventArgs _eventArgs;
     private readonly CancellationTokenSource _cts;
+
+    private readonly HashSet<NetworkConnection> _connections = new();
 
     public NetworkServer()
     {
         _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
-        _eventArgs = new SocketAsyncEventArgs();
         _cts = new CancellationTokenSource();
+    }
+
+    public void Tick(in TimeSpan deltaTime)
+    {
+        lock (_connections)
+        {
+            foreach (var connection in _connections)
+            {
+                connection.Tick(in deltaTime);
+            }
+        }
     }
 
     public void Listen(IPEndPoint endPoint)
@@ -40,6 +51,7 @@ public class NetworkServer : IDisposable
 
     public void Close()
     {
+        _listenSocket.Shutdown(SocketShutdown.Both);
         _listenSocket.Close();
     }
 
@@ -64,14 +76,28 @@ public class NetworkServer : IDisposable
         Logger.LogInformation("Connection made from {}", clientSocket.RemoteEndPoint);
 
         var connection = new NetworkConnection(clientSocket);
+
+        lock (_connections)
+        {
+            _connections.Add(connection);
+        }
+
         connection.Listen();
+    }
+
+    internal void HandleDisconnection(NetworkConnection connection, NetworkReason reason)
+    {
+        Logger.LogInformation("{} disconnected ({})", connection, reason);
+        lock (_connections)
+        {
+            _connections.Remove(connection);
+        }
     }
 
     public void Dispose()
     {
         GC.SuppressFinalize(this);
 
-        _eventArgs.Dispose();
         _listenSocket.Dispose();
     }
 }

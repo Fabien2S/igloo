@@ -9,6 +9,8 @@ public class GameServer
     private static readonly ILogger<GameServer> Logger = LogManager.Create<GameServer>();
 
     private readonly GameServerConfig _config;
+    private readonly CancellationTokenSource _cts;
+
     private readonly NetworkServer _networkServer;
 
     private bool _running;
@@ -16,10 +18,12 @@ public class GameServer
     public GameServer(GameServerConfig config)
     {
         _config = config;
+        _cts = new CancellationTokenSource();
+
         _networkServer = new NetworkServer();
     }
 
-    public GameServerResult Run()
+    public async Task<GameServerResult> RunAsync()
     {
         if (_running)
             return GameServerResult.AlreadyStarted;
@@ -30,14 +34,17 @@ public class GameServer
 
             _networkServer.Listen(_config.EndPoint);
 
-            while (_running)
+            var tickPeriod = TimeSpan.FromMilliseconds(50);
+            var tickTimer = new PeriodicTimer(tickPeriod);
+            while (await tickTimer.WaitForNextTickAsync(_cts.Token))
             {
-                Thread.Yield();
+                _networkServer.Tick(in tickPeriod);
             }
         }
         finally
         {
             _networkServer.Close();
+            _running = false;
         }
 
         return GameServerResult.Ok;
@@ -45,6 +52,6 @@ public class GameServer
 
     public void Stop()
     {
-        _running = false;
+        _cts.Cancel();
     }
 }

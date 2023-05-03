@@ -18,4 +18,9 @@ public record struct DisconnectPacket(string Json) : INetworkPacket<DisconnectPa
             reader.ReadString()
         );
     }
+
+    public static bool Handle(NetworkConnection connection, in DisconnectPacket packet)
+    {
+        return false;
+    }
 }

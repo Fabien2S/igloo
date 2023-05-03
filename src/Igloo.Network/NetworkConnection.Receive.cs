@@ -1,8 +1,7 @@
 ﻿using System.Buffers;
 using System.IO.Pipelines;
 using Igloo.Common.Buffers;
-using Igloo.Network.Handshake;
-using Igloo.Network.Login;
+using Igloo.Network.Packets;
 using Microsoft.Extensions.Logging;
 
 namespace Igloo.Network;
@@ -79,8 +78,17 @@ public partial class NetworkConnection
             try
             {
                 var buffer = result.Buffer;
-                if (HandlePacket(buffer, out var read))
+                if (HandlePacket(buffer, out var read, out var packetHandler))
                 {
+                    if (_handler.IsAsync)
+                    {
+                        packetHandler(this);
+                    }
+                    else
+                    {
+                        await _inChannel.Writer.WriteAsync(packetHandler, _cts.Token);
+                    }
+
                     var consumed = buffer.GetPosition(read);
                     reader.AdvanceTo(consumed);
                 }
@@ -107,21 +115,24 @@ public partial class NetworkConnection
         await reader.CompleteAsync();
     }
 
-    private bool HandlePacket(ReadOnlySequence<byte> sequence, out int read)
+    private bool HandlePacket(ReadOnlySequence<byte> sequence, out int read, out PacketHandler packetHandler)
     {
         var headerReader = new SequenceReader<byte>(sequence);
         if (!headerReader.TryReadVarInt32(out var packetLength, out var headerSize))
         {
             // packet length not fully received yet
             read = headerSize;
+            packetHandler = static _ => { };
             return false;
         }
 
-        if (headerSize > NetworkProtocol.PacketHeaderMaxSize)
+        const int maxHeaderSize = 3;
+        if (headerSize > maxHeaderSize)
         {
             // Packet too large
             Close(NetworkReason.ProtocolError);
-            read = 0;
+            read = headerSize;
+            packetHandler = static _ => { };
             return false;
         }
 
@@ -129,6 +140,7 @@ public partial class NetworkConnection
         {
             // packet not fully received yet
             read = headerSize;
+            packetHandler = static _ => { };
             return false;
         }
 
@@ -137,31 +149,16 @@ public partial class NetworkConnection
         var packetReader = new BufferReader(packetBuffer);
 
         var packetId = packetReader.ReadVarInt32();
-        switch (packetId)
-        {
-            case 0:
-                HandshakePacket.Deserialize(ref packetReader, out var handshakePacket);
-                Logger.LogInformation("Received handshake: {}", handshakePacket);
-
-                if (handshakePacket.RequestedState == HandshakePacket.State.Login)
-                {
-                    _ = WriteAsync(new DisconnectPacket("""
-                        {"text":"Test","color":"red"}
-                        """));
-                }
-                else
-                {
-                    Close(NetworkReason.ClosedLocally);
-                }
-
-                break;
-            default:
-                Logger.LogWarning("Invalid packet {} received from {}", packetId, this);
-                Close(NetworkReason.ClosedLocally);
-                break;
-        }
 
         read = (int)headerReader.Consumed;
+        if (!_handler.ReceivePacket(packetId, ref packetReader, out packetHandler))
+        {
+            Logger.LogWarning("Invalid packet {} received from {}", packetId, this);
+            Close(NetworkReason.ClosedLocally);
+            return false;
+        }
+
+        Logger.LogDebug("Packet {} received from {}", packetId, this);
         return true;
     }
 }
