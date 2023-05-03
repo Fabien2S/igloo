@@ -34,6 +34,8 @@ public class NetworkServer : ITickable, IDisposable
 
     public void Listen(IPEndPoint endPoint)
     {
+        Logger.LogDebug("Starting network server");
+
         // Configure socket
         _listenSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
         _listenSocket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, true);
@@ -51,6 +53,8 @@ public class NetworkServer : ITickable, IDisposable
 
     public void Close()
     {
+        Logger.LogDebug("Shutting down network server");
+
         _listenSocket.Shutdown(SocketShutdown.Both);
         _listenSocket.Close();
     }

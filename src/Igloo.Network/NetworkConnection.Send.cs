@@ -39,7 +39,7 @@ public partial class NetworkConnection
         while (!_cts.IsCancellationRequested)
         {
             var packetSerializer = await reader.ReadAsync(_cts.Token).ConfigureAwait(false);
-            Logger.LogDebug("Sending packet {} to {}", packetSerializer, this);
+            Logger.LogTrace("Sending packet {} to {}", packetSerializer, this);
 
             _outgoingBuffer.Clear();
             WritePacket(_outgoingBuffer, packetSerializer);
@@ -77,7 +77,7 @@ public partial class NetworkConnection
 
             try
             {
-                Logger.LogDebug("Sending {} byte(s) to {}", buffer.Length, this);
+                Logger.LogTrace("Sending {} byte(s) to {}", buffer.Length, this);
                 var sent = await SendBufferAsync(buffer).ConfigureAwait(false);
 
                 var consumed = buffer.GetPosition(sent);

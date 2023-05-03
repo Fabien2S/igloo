@@ -30,6 +30,8 @@ public partial class NetworkConnection
                     break;
                 }
 
+                Logger.LogTrace("Receiving {} byte(s) from {}", received, this);
+
                 writer.Advance(received);
             }
             catch (Exception e)
@@ -149,6 +151,7 @@ public partial class NetworkConnection
         var packetReader = new BufferReader(packetBuffer);
 
         var packetId = packetReader.ReadVarInt32();
+        Logger.LogTrace("Receiving packet {} from {}", packetId, this);
 
         read = (int)headerReader.Consumed;
         if (!_handler.ReceivePacket(packetId, ref packetReader, out packetHandler))
@@ -158,7 +161,6 @@ public partial class NetworkConnection
             return false;
         }
 
-        Logger.LogDebug("Packet {} received from {}", packetId, this);
         return true;
     }
 }
