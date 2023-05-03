@@ -1,8 +1,6 @@
 ﻿using Igloo.Common.Buffers;
-using Igloo.Common.Logging;
 using Igloo.Network.Login;
 using Igloo.Network.Packets;
-using Microsoft.Extensions.Logging;
 
 namespace Igloo.Network.Handshake;
 
@@ -37,7 +35,6 @@ public readonly record struct HandshakePacket(int Protocol, string Address, usho
 
     public static bool Handle(NetworkConnection connection, in HandshakePacket packet)
     {
-        LogManager.Create<HandshakePacket>().LogDebug("Handling packet {} on {}", packet, Thread.CurrentThread);
         if (packet.RequestedState == State.Login)
         {
             connection.Handler = new LoginNetworkHandler();

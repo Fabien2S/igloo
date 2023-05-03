@@ -10,18 +10,10 @@ public class HandshakeNetworkHandler : INetworkHandler
 
     public bool ReceivePacket(int id, ref BufferReader reader, out PacketHandler handler)
     {
-        switch (id)
+        return id switch
         {
-            case 0:
-            {
-                HandshakePacket.Deserialize(ref reader, out var handshakePacket);
-                handler = connection => HandshakePacket.Handle(connection, handshakePacket);
-                return true;
-            }
-
-            default:
-                handler = static _ => { };
-                return false;
-        }
+            0 => PacketHelper.Deserialize<HandshakePacket>(ref reader, out handler),
+            _ => PacketHelper.Empty(out handler)
+        };
     }
 }

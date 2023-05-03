@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Globalization;
 using System.IO.Pipelines;
 using Igloo.Common.Buffers;
 using Igloo.Network.Packets;
@@ -151,7 +152,7 @@ public partial class NetworkConnection
         var packetReader = new BufferReader(packetBuffer);
 
         var packetId = packetReader.ReadVarInt32();
-        Logger.LogTrace("Receiving packet {} from {}", packetId, this);
+        Logger.LogTrace("Receiving packet 0x{} from {}", packetId.ToString("XX", NumberFormatInfo.InvariantInfo), this);
 
         read = (int)headerReader.Consumed;
         if (!_handler.ReceivePacket(packetId, ref packetReader, out packetHandler))

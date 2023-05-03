@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Threading.Channels;
 using Igloo.Common.Buffers;
 using Igloo.Common.Logging;
+using Igloo.Common.Serialization;
 using Igloo.Common.Timings;
 using Igloo.Network.Handlers;
 using Igloo.Network.Handshake;
@@ -28,7 +29,7 @@ public partial class NetworkConnection : ITickable
     private readonly Pipe _outPipe;
 
     private readonly Channel<PacketHandler> _inChannel;
-    private readonly Channel<PacketSerializer> _outChannel;
+    private readonly Channel<SerializationCallback> _outChannel;
 
     private Task? _readTask;
     private Task? _writeTask;
@@ -46,9 +47,13 @@ public partial class NetworkConnection : ITickable
 
         _inChannel = Channel.CreateUnbounded<PacketHandler>(new UnboundedChannelOptions
         {
+            SingleReader = true,
+            SingleWriter = true
         });
-        _outChannel = Channel.CreateUnbounded<PacketSerializer>(new UnboundedChannelOptions
+        _outChannel = Channel.CreateUnbounded<SerializationCallback>(new UnboundedChannelOptions
         {
+            SingleReader = true,
+            SingleWriter = true
         });
 
         _handler = new HandshakeNetworkHandler();
@@ -115,6 +120,7 @@ public partial class NetworkConnection : ITickable
 
     public async Task SendAsync<TPacket>(TPacket packet) where TPacket : struct, INetworkPacket<TPacket>
     {
+        Logger.LogTrace("Sending packet {} to {}", packet, this);
         await _outChannel.Writer.WriteAsync((ref BufferWriter writer) =>
         {
             writer.WriteVarInt32(TPacket.Id);
