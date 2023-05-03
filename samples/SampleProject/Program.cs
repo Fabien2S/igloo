@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging.Console;
 LogManager.Factory = LoggerFactory.Create(builder =>
 {
     builder.ClearProviders();
-    builder.SetMinimumLevel(LogLevel.Debug);
+    builder.SetMinimumLevel(LogLevel.Trace);
     builder.AddSimpleConsole(options =>
     {
         options.SingleLine = false;
@@ -23,17 +23,4 @@ var server = new GameServer(config);
 
 Console.CancelKeyPress += (_, _) => { server.Stop(); };
 
-var logger = LogManager.Create(typeof(Program));
-
-logger.LogInformation("Starting server...");
-
-var result = await server.RunAsync();
-
-if (result != GameServerResult.Ok)
-{
-    logger.LogError("Server exited with {}", result);
-}
-else
-{
-    logger.LogInformation("Server stopped");
-}
+return (int)await server.RunAsync();

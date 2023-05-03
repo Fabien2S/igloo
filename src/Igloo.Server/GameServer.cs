@@ -32,17 +32,22 @@ public class GameServer
         {
             _running = true;
 
+            Logger.LogInformation("Starting server");
+            Logger.LogDebug("Using {}", _config);
+
             _networkServer.Listen(_config.EndPoint);
 
             var tickPeriod = TimeSpan.FromMilliseconds(50);
             var tickTimer = new PeriodicTimer(tickPeriod);
-            while (await tickTimer.WaitForNextTickAsync(_cts.Token))
+            while (await tickTimer.WaitForNextTickAsync(_cts.Token).ConfigureAwait(true))
             {
                 _networkServer.Tick(in tickPeriod);
             }
         }
         finally
         {
+            Logger.LogInformation("Shutting down server");
+
             _networkServer.Close();
             _running = false;
         }
