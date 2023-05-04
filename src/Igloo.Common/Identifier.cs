@@ -129,7 +129,7 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
     /// </summary>
     /// <param name="namespace">The namespace.</param>
     /// <param name="path">The path.</param>
-    /// <returns>An <see cref="Identifier"/> created from the <paramref name="namespace"/> and <paramref name="path"/></returns>
+    /// <returns>An <see cref="Identifier"/> created from the <paramref name="namespace"/> and <paramref name="path"/>.</returns>
     /// <exception cref="FormatException"><paramref name="namespace"/> and/or <paramref name="path"/> are not in the correct format.</exception>
     /// <seealso cref="IsAllowedNamespace(ReadOnlySpan{char})"/>
     /// <seealso cref="IsAllowedPath(ReadOnlySpan{char})"/>
@@ -161,7 +161,7 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
     /// </summary>
     /// <param name="input">The string representation of an <see cref="Identifier"/>.</param>
     /// <param name="provider">An object that supplies culture-specific formatting information about <paramref name="input"/>.</param>
-    /// <returns>An <see cref="Identifier"/> created from <paramref name="input"/></returns>
+    /// <returns>An <see cref="Identifier"/> created from <paramref name="input"/>.</returns>
     public static Identifier Parse(ReadOnlySpan<char> input, IFormatProvider? provider)
     {
         Decompose(input, out var @namespace, out var path);
@@ -173,7 +173,7 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
     /// </summary>
     /// <param name="input">The string representation of an <see cref="Identifier"/>.</param>
     /// <param name="provider">An object that supplies culture-specific formatting information about <paramref name="input"/>.</param>
-    /// <param name="result">The successfully parsed <see cref="Identifier"/>, or an undefined value on failure</param>
+    /// <param name="result">The successfully parsed <see cref="Identifier"/>, or an undefined value on failure.</param>
     /// <returns>true if <paramref name="input"/> was successfully parsed; otherwise, false.</returns>
     public static bool TryParse(ReadOnlySpan<char> input, IFormatProvider? provider, out Identifier result)
     {
