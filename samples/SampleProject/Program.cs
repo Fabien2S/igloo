@@ -1,5 +1,5 @@
 ﻿using System.Net;
-using Igloo.Common.Logging;
+using Igloo.Logging;
 using Igloo.Server;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;

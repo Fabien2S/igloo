@@ -1,10 +1,10 @@
 ﻿using System.Net.Sockets;
-using Igloo.Common.Buffers;
-using Igloo.Common.Logging;
-using Igloo.Common.Timings;
+using Igloo.Buffers;
+using Igloo.Logging;
 using Igloo.Network.Handlers;
 using Igloo.Network.Handshake;
 using Igloo.Network.Packets;
+using Igloo.Timings;
 using Microsoft.Extensions.Logging;
 
 namespace Igloo.Network;

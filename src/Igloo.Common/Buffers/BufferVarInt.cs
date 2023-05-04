@@ -1,6 +1,6 @@
 ﻿using System.Buffers;
 
-namespace Igloo.Common.Buffers;
+namespace Igloo.Buffers;
 
 public static class BufferVarInt
 {

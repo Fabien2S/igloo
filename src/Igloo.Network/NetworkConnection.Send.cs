@@ -2,8 +2,8 @@ using System.Buffers;
 using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Threading.Channels;
-using Igloo.Common.Buffers;
-using Igloo.Common.Serialization;
+using Igloo.Buffers;
+using Igloo.Serialization;
 using Microsoft.Extensions.Logging;
 
 namespace Igloo.Network;

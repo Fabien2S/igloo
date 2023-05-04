@@ -1,4 +1,4 @@
-﻿namespace Igloo.Common.Buffers;
+﻿namespace Igloo.Buffers;
 
 /// <summary>
 ///     Provides a big-endian reader for binary data

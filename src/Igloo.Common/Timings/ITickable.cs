@@ -1,4 +1,4 @@
-﻿namespace Igloo.Common.Timings;
+﻿namespace Igloo.Timings;
 
 public interface ITickable
 {

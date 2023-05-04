@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.IO.Pipelines;
 using System.Threading.Channels;
-using Igloo.Common.Buffers;
+using Igloo.Buffers;
 using Igloo.Network.Packets;
 using Microsoft.Extensions.Logging;
 

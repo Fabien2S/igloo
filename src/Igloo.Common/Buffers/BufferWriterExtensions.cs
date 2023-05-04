@@ -2,7 +2,7 @@
 using System.Numerics;
 using System.Text;
 
-namespace Igloo.Common.Buffers;
+namespace Igloo.Buffers;
 
 /// <summary>
 ///     Provides <see cref="BufferWriter"/> extensions for primitives

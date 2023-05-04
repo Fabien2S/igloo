@@ -1,4 +1,4 @@
-﻿using Igloo.Common.Logging;
+﻿using Igloo.Logging;
 using Igloo.Network;
 using Microsoft.Extensions.Logging;
 

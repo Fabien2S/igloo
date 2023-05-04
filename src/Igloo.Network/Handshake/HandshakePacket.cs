@@ -1,4 +1,4 @@
-﻿using Igloo.Common.Buffers;
+﻿using Igloo.Buffers;
 using Igloo.Network.Login;
 using Igloo.Network.Packets;
 

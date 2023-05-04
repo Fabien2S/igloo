@@ -1,5 +1,5 @@
-﻿using Igloo.Common.Buffers;
+﻿using Igloo.Buffers;
 
-namespace Igloo.Common.Serialization;
+namespace Igloo.Serialization;
 
 public delegate void SerializationCallback(ref BufferWriter writer);

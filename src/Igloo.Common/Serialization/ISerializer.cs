@@ -1,6 +1,6 @@
-﻿using Igloo.Common.Buffers;
+﻿using Igloo.Buffers;
 
-namespace Igloo.Common.Serialization;
+namespace Igloo.Serialization;
 
 public interface ISerializer<T>
 {

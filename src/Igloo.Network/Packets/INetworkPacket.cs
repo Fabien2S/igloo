@@ -1,4 +1,4 @@
-﻿using Igloo.Common.Serialization;
+﻿using Igloo.Serialization;
 
 namespace Igloo.Network.Packets;
 

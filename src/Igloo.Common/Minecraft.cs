@@ -1,4 +1,4 @@
-﻿namespace Igloo.Common;
+﻿namespace Igloo;
 
 public static class Minecraft
 {

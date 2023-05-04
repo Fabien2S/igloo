@@ -1,6 +1,6 @@
 ﻿using System.Buffers;
 
-namespace Igloo.Common.Buffers;
+namespace Igloo.Buffers;
 
 /// <summary>
 ///     Provides a big-endian writer for binary data

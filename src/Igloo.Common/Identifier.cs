@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Igloo.Common;
+namespace Igloo;
 
 public readonly struct Identifier : IEquatable<Identifier>, ISpanParsable<Identifier>
 {

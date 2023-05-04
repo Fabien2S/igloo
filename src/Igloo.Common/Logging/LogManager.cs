@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Igloo.Common.Logging;
+namespace Igloo.Logging;
 
 public static class LogManager
 {

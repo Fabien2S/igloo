@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
-using Igloo.Common.Logging;
-using Igloo.Common.Timings;
+using Igloo.Logging;
+using Igloo.Timings;
 using Microsoft.Extensions.Logging;
 
 namespace Igloo.Network;
