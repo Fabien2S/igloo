@@ -12,8 +12,8 @@ public class HandshakeNetworkHandler : INetworkHandler
     {
         return id switch
         {
-            0 => PacketHelper.Deserialize<HandshakePacket>(ref reader, out handler),
-            _ => PacketHelper.Empty(out handler)
+            0 => PacketSerializer.Deserialize<HandshakePacket>(ref reader, out handler),
+            _ => PacketSerializer.Empty(out handler)
         };
     }
 }

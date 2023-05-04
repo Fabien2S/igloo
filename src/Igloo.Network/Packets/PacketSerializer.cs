@@ -4,7 +4,7 @@ namespace Igloo.Network.Packets;
 
 public delegate void PacketHandler(NetworkConnection connection);
 
-internal static class PacketHelper
+internal static class PacketSerializer
 {
     public static bool Deserialize<TPacket>(ref BufferReader reader, out PacketHandler handler) where TPacket : struct, INetworkPacket<TPacket>
     {
