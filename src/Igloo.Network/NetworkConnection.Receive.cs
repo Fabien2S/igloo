@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Globalization;
 using System.IO.Pipelines;
+using System.Threading.Channels;
 using Igloo.Common.Buffers;
 using Igloo.Network.Packets;
 using Microsoft.Extensions.Logging;
@@ -9,10 +10,18 @@ namespace Igloo.Network;
 
 public partial class NetworkConnection
 {
-    private async Task ReceiveAsync()
+    private readonly Pipe _incomingPipe = new();
+
+    private readonly Channel<PacketHandler> _incomingPackets = Channel.CreateUnbounded<PacketHandler>(new UnboundedChannelOptions
     {
-        var writeTask = FillIncomingAsync(_inPipe.Writer);
-        var readTask = ProcessIncomingAsync(_inPipe.Reader);
+        SingleReader = true,
+        SingleWriter = true
+    });
+
+    private async Task PerformReceiveAsync()
+    {
+        var writeTask = FillIncomingAsync(_incomingPipe.Writer);
+        var readTask = ProcessIncomingAsync(_incomingPipe.Reader);
 
         await Task.WhenAll(writeTask, readTask).ConfigureAwait(false);
     }
@@ -54,7 +63,7 @@ public partial class NetworkConnection
         }
 
         await writer.CompleteAsync().ConfigureAwait(false);
-        await _outPipe.Writer.CompleteAsync().ConfigureAwait(false);
+        await _outgoingPipe.Writer.CompleteAsync().ConfigureAwait(false);
     }
 
     private async Task ProcessIncomingAsync(PipeReader reader)
@@ -89,7 +98,7 @@ public partial class NetworkConnection
                     }
                     else
                     {
-                        await _inChannel.Writer.WriteAsync(packetHandler, _cts.Token);
+                        await _incomingPackets.Writer.WriteAsync(packetHandler, _cts.Token);
                     }
 
                     var consumed = buffer.GetPosition(read);

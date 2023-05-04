@@ -1,9 +1,6 @@
-﻿using System.IO.Pipelines;
-using System.Net.Sockets;
-using System.Threading.Channels;
+﻿using System.Net.Sockets;
 using Igloo.Common.Buffers;
 using Igloo.Common.Logging;
-using Igloo.Common.Serialization;
 using Igloo.Common.Timings;
 using Igloo.Network.Handlers;
 using Igloo.Network.Handshake;
@@ -25,12 +22,6 @@ public partial class NetworkConnection : ITickable
     private readonly Socket _socket;
     private readonly CancellationTokenSource _cts;
 
-    private readonly Pipe _inPipe;
-    private readonly Pipe _outPipe;
-
-    private readonly Channel<PacketHandler> _inChannel;
-    private readonly Channel<SerializationCallback> _outChannel;
-
     private Task? _readTask;
     private Task? _writeTask;
 
@@ -42,28 +33,14 @@ public partial class NetworkConnection : ITickable
         _socket = socket;
         _cts = new CancellationTokenSource();
 
-        _inPipe = new Pipe();
-        _outPipe = new Pipe();
-
-        _inChannel = Channel.CreateUnbounded<PacketHandler>(new UnboundedChannelOptions
-        {
-            SingleReader = true,
-            SingleWriter = true
-        });
-        _outChannel = Channel.CreateUnbounded<SerializationCallback>(new UnboundedChannelOptions
-        {
-            SingleReader = true,
-            SingleWriter = true
-        });
-
         _handler = new HandshakeNetworkHandler();
     }
 
     public void Tick(in TimeSpan deltaTime)
     {
-        var reader = _inChannel.Reader;
-        while (reader.TryRead(out var handler))
-            handler(this);
+        var reader = _incomingPackets.Reader;
+        while (reader.TryRead(out var packetHandler))
+            packetHandler(this);
     }
 
     private async void WaitForClosingAsync(Task readTask, Task writeTask)
@@ -113,15 +90,15 @@ public partial class NetworkConnection : ITickable
 
     internal void Listen()
     {
-        _readTask = ReceiveAsync();
-        _writeTask = SendAsync();
+        _readTask = PerformReceiveAsync();
+        _writeTask = PerformSendAsync();
         WaitForClosingAsync(_readTask, _writeTask);
     }
 
     public async Task SendAsync<TPacket>(TPacket packet) where TPacket : struct, INetworkPacket<TPacket>
     {
         Logger.LogTrace("Sending packet {} to {}", packet, this);
-        await _outChannel.Writer.WriteAsync((ref BufferWriter writer) =>
+        await _outgoingPackets.Writer.WriteAsync((ref BufferWriter writer) =>
         {
             writer.WriteVarInt32(TPacket.Id);
             TPacket.Serialize(ref writer, in packet);

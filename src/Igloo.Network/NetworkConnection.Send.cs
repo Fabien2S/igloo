@@ -10,12 +10,20 @@ namespace Igloo.Network;
 
 public partial class NetworkConnection
 {
+    private readonly Pipe _outgoingPipe = new();
     private readonly ArrayBufferWriter<byte> _outgoingBuffer = new();
 
-    private async Task SendAsync()
+    private readonly Channel<SerializationCallback> _outgoingPackets = Channel.CreateUnbounded<SerializationCallback>(new UnboundedChannelOptions
     {
-        var packetEncoder = EncodeOutgoingPacketAsync(_outChannel.Reader, _outPipe.Writer);
-        var sendTask = SendOutgoingBytesAsync(_outPipe.Reader);
+        SingleReader = true,
+        SingleWriter = false
+    });
+
+
+    private async Task PerformSendAsync()
+    {
+        var packetEncoder = EncodeOutgoingPacketAsync(_outgoingPackets.Reader, _outgoingPipe.Writer);
+        var sendTask = SendOutgoingBytesAsync(_outgoingPipe.Reader);
 
         await Task.WhenAll(packetEncoder, sendTask).ConfigureAwait(false);
     }
