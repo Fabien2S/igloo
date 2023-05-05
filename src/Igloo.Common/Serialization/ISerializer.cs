@@ -5,14 +5,14 @@ namespace Igloo.Serialization;
 public interface ISerializer<T>
 {
     /// <summary>
-    ///     Serialize <see cref="value"/> into <see cref="writer"/>
+    ///     Serialize <paramref name="value"/> into <paramref name="writer"/>
     /// </summary>
     /// <param name="writer">The writer</param>
     /// <param name="value">The value</param>
     static abstract void Serialize(ref BufferWriter writer, in T value);
 
     /// <summary>
-    ///     Deserialize <see cref="value"/> from <see cref="reader"/>
+    ///     Deserialize <paramref name="value"/> from <paramref name="reader"/>
     /// </summary>
     /// <param name="reader">The reader</param>
     /// <param name="value">The value</param>

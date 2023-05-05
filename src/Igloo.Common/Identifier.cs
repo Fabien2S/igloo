@@ -4,22 +4,22 @@ using System.Numerics;
 namespace Igloo;
 
 /// <summary>
-/// Represents a namespaced-path.
+///     Represents a namespaced-path.
 /// </summary>
 public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<Identifier, Identifier, bool>, ISpanParsable<Identifier>
 {
     /// <summary>
-    /// Defines the separator between the namespace and the path
+    ///     Defines the separator between the namespace and the path
     /// </summary>
     public const char Separator = ':';
 
     /// <summary>
-    /// Gets the namespace of the identifier
+    ///     Gets the namespace of the identifier
     /// </summary>
     public ReadOnlySpan<char> Namespace => _key.AsSpan(0, _separator);
 
     /// <summary>
-    /// Gets the path of the identifier
+    ///     Gets the path of the identifier
     /// </summary>
     public ReadOnlySpan<char> Path => _key.AsSpan(_separator + 1);
 
@@ -69,7 +69,7 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
     }
 
     /// <summary>
-    /// Indicates whether the specified character is allowed in a namespace.
+    ///     Indicates whether the specified character is allowed in a namespace.
     /// </summary>
     /// <param name="c">The character to test.</param>
     /// <returns>true if <paramref name="c"/> is allowed in a namespace; otherwise, false.</returns>
@@ -79,7 +79,7 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
     }
 
     /// <summary>
-    /// Indicates whether the specified character is allowed in a path.
+    ///     Indicates whether the specified character is allowed in a path.
     /// </summary>
     /// <param name="c">The character to test.</param>
     /// <returns>true if <paramref name="c"/> is allowed in a path; otherwise, false.</returns>
@@ -89,7 +89,7 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
     }
 
     /// <summary>
-    /// Indicates whether the specified string is a valid namespace.
+    ///     Indicates whether the specified string is a valid namespace.
     /// </summary>
     /// <param name="input">The string to test.</param>
     /// <returns>true if <paramref name="input"/> is a valid namespace; otherwise, false.</returns>
@@ -107,7 +107,7 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
     }
 
     /// <summary>
-    /// Indicates whether the specified string is a valid path.
+    ///     Indicates whether the specified string is a valid path.
     /// </summary>
     /// <param name="input">The string to test.</param>
     /// <returns>true if <paramref name="input"/> is a valid path; otherwise, false.</returns>
@@ -125,7 +125,7 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
     }
 
     /// <summary>
-    /// Creates a new <see cref="Identifier"/> with a specific namespace and path.
+    ///     Creates a new <see cref="Identifier"/> with a specific namespace and path.
     /// </summary>
     /// <param name="namespace">The namespace.</param>
     /// <param name="path">The path.</param>
@@ -157,7 +157,7 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
     }
 
     /// <summary>
-    /// Creates an <see cref="Identifier"/> from its string representation.
+    ///     Creates an <see cref="Identifier"/> from its string representation.
     /// </summary>
     /// <param name="input">The string representation of an <see cref="Identifier"/>.</param>
     /// <param name="provider">An object that supplies culture-specific formatting information about <paramref name="input"/>.</param>
@@ -169,7 +169,7 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
     }
 
     /// <summary>
-    /// Tries to create an <see cref="Identifier"/> from its string representation.
+    ///     Tries to create an <see cref="Identifier"/> from its string representation.
     /// </summary>
     /// <param name="input">The string representation of an <see cref="Identifier"/>.</param>
     /// <param name="provider">An object that supplies culture-specific formatting information about <paramref name="input"/>.</param>
