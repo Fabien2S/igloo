@@ -23,14 +23,13 @@
     "content": [
       {
         "files": [
-          "api/**.yml",
-          "api/index.md"
+          "api/**.yml"
         ]
       },
       {
         "files": [
-          "articles/**.md",
-          "articles/**/toc.yml",
+          "docs/**.md",
+          "docs/**/toc.yml",
           "toc.yml",
           "*.md"
         ]
@@ -46,6 +45,7 @@
     "dest": "_site",
     "globalMetadata": {
       "_appTitle": "Igloo",
+      "_appFooter": "Made with <a href=\"https://dotnet.github.io/docfx\">docfx</a> - <a href=\"https://game-icons.net/1x1/lorc/cold-heart.html\">Icon</a> by <a href=\"https://lorcblog.blogspot.com\" rel=\"author\">Lorc</a>",
       "_appLogoPath": "images/logo.svg",
       "_appFaviconPath": "images/favicon.ico",
       "_enableSearch": true
