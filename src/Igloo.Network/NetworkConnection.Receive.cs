@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO.Pipelines;
 using System.Threading.Channels;
@@ -12,7 +13,7 @@ public partial class NetworkConnection
 {
     private readonly Pipe _incomingPipe = new();
 
-    private readonly Channel<PacketHandler> _incomingPackets = Channel.CreateUnbounded<PacketHandler>(new UnboundedChannelOptions
+    private readonly Channel<IPacketInvoker> _incomingPackets = Channel.CreateUnbounded<IPacketInvoker>(new UnboundedChannelOptions
     {
         SingleReader = true,
         SingleWriter = true
@@ -90,15 +91,15 @@ public partial class NetworkConnection
             try
             {
                 var buffer = result.Buffer;
-                if (HandlePacket(buffer, out var read, out var packetHandler))
+                if (HandlePacket(buffer, out var read, out var packetInvoker))
                 {
                     if (_handler.IsAsync)
                     {
-                        packetHandler(this);
+                        packetInvoker.Invoke();
                     }
                     else
                     {
-                        await _incomingPackets.Writer.WriteAsync(packetHandler, _cts.Token);
+                        await _incomingPackets.Writer.WriteAsync(packetInvoker, _cts.Token);
                     }
 
                     var consumed = buffer.GetPosition(read);
@@ -127,14 +128,14 @@ public partial class NetworkConnection
         await reader.CompleteAsync();
     }
 
-    private bool HandlePacket(ReadOnlySequence<byte> sequence, out int read, out PacketHandler packetHandler)
+    private bool HandlePacket(ReadOnlySequence<byte> sequence, out int read, [NotNullWhen(true)] out IPacketInvoker? packetInvoker)
     {
         var headerReader = new SequenceReader<byte>(sequence);
-        if (!headerReader.TryReadVarInt32(out var packetLength, out var headerSize))
+        if (!headerReader.TryReadVarInt(out var packetLength, out var headerSize))
         {
             // packet length not fully received yet
             read = headerSize;
-            packetHandler = static _ => { };
+            packetInvoker = null;
             return false;
         }
 
@@ -144,7 +145,7 @@ public partial class NetworkConnection
             // Packet too large
             Close(NetworkReason.ProtocolError);
             read = headerSize;
-            packetHandler = static _ => { };
+            packetInvoker = null;
             return false;
         }
 
@@ -152,7 +153,7 @@ public partial class NetworkConnection
         {
             // packet not fully received yet
             read = headerSize;
-            packetHandler = static _ => { };
+            packetInvoker = null;
             return false;
         }
 
@@ -160,11 +161,11 @@ public partial class NetworkConnection
         var packetBuffer = packetSequence.ToArray();
         var packetReader = new BufferReader(packetBuffer);
 
-        var packetId = packetReader.ReadVarInt32();
-        Logger.LogTrace("Receiving packet 0x{} from {}", packetId.ToString("XX", NumberFormatInfo.InvariantInfo), this);
+        var packetId = packetReader.ReadVarInt();
+        Logger.LogTrace("Receiving packet 0x{} (length {}) from {}", packetId.ToString("X2", NumberFormatInfo.InvariantInfo), packetReader.Remaining, this);
 
         read = (int)headerReader.Consumed;
-        if (!_handler.ReceivePacket(packetId, ref packetReader, out packetHandler))
+        if (!_handler.ReceivePacket(packetId, ref packetReader, out packetInvoker))
         {
             Logger.LogWarning("Invalid packet {} received from {}", packetId, this);
             Close(NetworkReason.ClosedLocally);

@@ -3,7 +3,7 @@ using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Threading.Channels;
 using Igloo.Buffers;
-using Igloo.Serialization;
+using Igloo.Network.Packets;
 using Microsoft.Extensions.Logging;
 
 namespace Igloo.Network;
@@ -13,7 +13,7 @@ public partial class NetworkConnection
     private readonly Pipe _outgoingPipe = new();
     private readonly ArrayBufferWriter<byte> _outgoingBuffer = new();
 
-    private readonly Channel<SerializationCallback> _outgoingPackets = Channel.CreateUnbounded<SerializationCallback>(new UnboundedChannelOptions
+    private readonly Channel<IPacketOut> _outgoingPackets = Channel.CreateUnbounded<IPacketOut>(new UnboundedChannelOptions
     {
         SingleReader = true,
         SingleWriter = false
@@ -28,18 +28,18 @@ public partial class NetworkConnection
         await Task.WhenAll(packetEncoder, sendTask).ConfigureAwait(false);
     }
 
-    private async Task EncodeOutgoingPacketAsync(ChannelReader<SerializationCallback> reader, PipeWriter writer)
+    private async Task EncodeOutgoingPacketAsync(ChannelReader<IPacketOut> reader, PipeWriter writer)
     {
-        static void WritePacket(IBufferWriter<byte> buffer, SerializationCallback callback)
+        static void WritePacket(IBufferWriter<byte> buffer, IPacketOut packet)
         {
             var writer = new BufferWriter(buffer);
-            callback(ref writer);
+            packet.Serialize(ref writer);
         }
 
         static int PrependVarIntLength(PipeWriter writer, ReadOnlySpan<byte> packet)
         {
             var bufferWriter = new BufferWriter(writer);
-            bufferWriter.WriteVarInt32(packet.Length, out var packetHeader);
+            bufferWriter.WriteVarInt(packet.Length, out var packetHeader);
             bufferWriter.WriteBytes(packet);
             return packetHeader + packet.Length;
         }

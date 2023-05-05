@@ -5,8 +5,9 @@
 /// </summary>
 public ref struct BufferReader
 {
-    public ReadOnlySpan<byte> Readable => _buffer[_cursor..];
-    public ReadOnlySpan<byte> ReadSpan => _buffer[.._cursor];
+    public int Consumed => _cursor;
+    public int Remaining => _buffer.Length - _cursor;
+    public ReadOnlySpan<byte> RemainingSpan => _buffer[_cursor..];
 
     private readonly ReadOnlySpan<byte> _buffer;
 

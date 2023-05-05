@@ -7,6 +7,8 @@ namespace Igloo.Buffers;
 /// </summary>
 public readonly ref struct BufferWriter
 {
+    public delegate void Writer<in T>(ref BufferWriter writer, T value);
+
     private readonly IBufferWriter<byte> _writer;
 
     public BufferWriter(IBufferWriter<byte> buffer)

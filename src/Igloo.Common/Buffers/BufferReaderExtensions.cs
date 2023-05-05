@@ -1,4 +1,6 @@
 ﻿using System.Buffers.Binary;
+using System.Diagnostics;
+using System.Globalization;
 using System.Numerics;
 using System.Text;
 
@@ -68,11 +70,11 @@ public static class BufferReaderExtensions
         return BitConverter.Int64BitsToDouble(bits);
     }
 
-    public static string ReadString(ref this BufferReader reader, ushort maxLength = ushort.MaxValue)
+    public static string ReadString(ref this BufferReader reader, short maxLength = short.MaxValue)
     {
         var maxByteCount = maxLength * 3;
 
-        var byteCount = reader.ReadVarInt32();
+        var byteCount = reader.ReadVarInt();
         if (byteCount < 0 || byteCount > maxByteCount)
             throw new IOException($"String is too large ({byteCount} > {maxByteCount})");
 
@@ -83,6 +85,28 @@ public static class BufferReaderExtensions
             throw new IOException($"String is too long ({str.Length} > {maxLength})");
 
         return str;
+    }
+
+    public static Identifier ReadIdentifier(ref this BufferReader reader)
+    {
+        var identifierStr = reader.ReadString();
+        return Identifier.Parse(identifierStr, CultureInfo.InvariantCulture);
+    }
+
+    public static Guid ReadUuid(ref this BufferReader reader)
+    {
+        const int uuidSize = 16;
+
+        var uuidBuffer = (Span<byte>)stackalloc byte[uuidSize];
+        var readBuffer = reader.ReadBytes(uuidSize);
+        if (!readBuffer.TryCopyTo(uuidBuffer))
+            throw new UnreachableException($"{nameof(uuidBuffer)} and {nameof(readBuffer)} must be of the same length");
+
+        (uuidBuffer[3], uuidBuffer[0]) = (uuidBuffer[0], uuidBuffer[3]);
+        (uuidBuffer[2], uuidBuffer[1]) = (uuidBuffer[1], uuidBuffer[2]);
+        (uuidBuffer[5], uuidBuffer[4]) = (uuidBuffer[4], uuidBuffer[5]);
+        (uuidBuffer[7], uuidBuffer[6]) = (uuidBuffer[6], uuidBuffer[7]);
+        return new Guid(uuidBuffer);
     }
 
     public static Vector2 ReadVector2(ref this BufferReader reader)

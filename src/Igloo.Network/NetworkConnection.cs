@@ -1,5 +1,5 @@
-﻿using System.Net.Sockets;
-using Igloo.Buffers;
+﻿using System.Diagnostics;
+using System.Net.Sockets;
 using Igloo.Logging;
 using Igloo.Network.Handlers;
 using Igloo.Network.Handshake;
@@ -13,6 +13,7 @@ public partial class NetworkConnection : ITickable
 {
     private static readonly ILogger<NetworkConnection> Logger = LogManager.Create<NetworkConnection>();
 
+    // TODO Rework
     public INetworkHandler Handler
     {
         get => _handler;
@@ -33,14 +34,14 @@ public partial class NetworkConnection : ITickable
         _socket = socket;
         _cts = new CancellationTokenSource();
 
-        _handler = new HandshakeNetworkHandler();
+        _handler = new HandshakeNetworkHandler(this);
     }
 
     public void Tick(in TimeSpan deltaTime)
     {
         var reader = _incomingPackets.Reader;
-        while (reader.TryRead(out var packetHandler))
-            packetHandler(this);
+        while (reader.TryRead(out var packetInvoker))
+            packetInvoker.Invoke();
     }
 
     private async void WaitForClosingAsync(Task readTask, Task writeTask)
@@ -95,14 +96,11 @@ public partial class NetworkConnection : ITickable
         WaitForClosingAsync(_readTask, _writeTask);
     }
 
-    public async Task SendAsync<TPacket>(TPacket packet) where TPacket : struct, INetworkPacket<TPacket>
+    public void Send<TPacket>(in TPacket packet) where TPacket : class, IPacketOut<TPacket>
     {
         Logger.LogTrace("Sending packet {} to {}", packet, this);
-        await _outgoingPackets.Writer.WriteAsync((ref BufferWriter writer) =>
-        {
-            writer.WriteVarInt32(TPacket.Id);
-            TPacket.Serialize(ref writer, in packet);
-        }, _cts.Token);
+        if (!_outgoingPackets.Writer.TryWrite(packet))
+            throw new UnreachableException($"{nameof(_outgoingPackets)} should be unbounded");
     }
 
     public void Close(NetworkReason reason)
@@ -110,6 +108,7 @@ public partial class NetworkConnection : ITickable
         if (_reason != NetworkReason.Ok)
             return;
 
+        Logger.LogInformation("Closing connection with {} ({})", this, reason);
         _reason = reason;
         _cts.Cancel();
     }

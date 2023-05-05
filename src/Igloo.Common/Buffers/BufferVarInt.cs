@@ -11,7 +11,7 @@ public static class BufferVarInt
 
     private const byte ContinueBit = 0b10000000;
 
-    public static bool TryReadVarInt32(ref this SequenceReader<byte> reader, out int value, out int size)
+    public static bool TryReadVarInt(ref this SequenceReader<byte> reader, out int value, out int size)
     {
         value = 0;
         size = 0;
@@ -34,7 +34,7 @@ public static class BufferVarInt
         return true;
     }
 
-    public static int ReadVarInt32(ref this BufferReader reader)
+    public static int ReadVarInt(ref this BufferReader reader)
     {
         var size = 0;
         var value = 0;
@@ -53,7 +53,7 @@ public static class BufferVarInt
         return value;
     }
 
-    public static void WriteVarInt32(ref this BufferWriter writer, int value)
+    public static void WriteVarInt(ref this BufferWriter writer, int value)
     {
         while (true)
         {
@@ -68,7 +68,7 @@ public static class BufferVarInt
         }
     }
 
-    public static void WriteVarInt32(ref this BufferWriter writer, int value, out int byteCount)
+    public static void WriteVarInt(ref this BufferWriter writer, int value, out int byteCount)
     {
         byteCount = 1;
 

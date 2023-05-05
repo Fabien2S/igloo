@@ -1,4 +1,5 @@
 ﻿using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Numerics;
 using System.Text;
 
@@ -68,7 +69,7 @@ public static class BufferWriterExtensions
         writer.WriteLong(bits);
     }
 
-    public static void WriteString(ref this BufferWriter writer, ReadOnlySpan<char> str, ushort maxLength = ushort.MaxValue)
+    public static void WriteString(ref this BufferWriter writer, ReadOnlySpan<char> str, short maxLength = short.MaxValue)
     {
         var maxByteCount = maxLength * 3;
 
@@ -79,9 +80,28 @@ public static class BufferWriterExtensions
         if (byteCount > maxByteCount)
             throw new IOException($"String is too large ({byteCount} > {maxByteCount})");
 
-        writer.WriteVarInt32(byteCount);
+        writer.WriteVarInt(byteCount);
         var byteBuffer = writer.WriteBytes(byteCount);
         Encoding.UTF8.GetBytes(str, byteBuffer);
+    }
+
+    public static void WriteIdentifier(ref this BufferWriter writer, Identifier value)
+    {
+        var identifierString = value.ToString();
+        writer.WriteString(identifierString);
+    }
+
+    public static void WriteUuid(ref this BufferWriter writer, Guid uuid)
+    {
+        const int uuidSize = 16;
+        var uuidBuffer = writer.WriteBytes(uuidSize);
+        if (!uuid.TryWriteBytes(uuidBuffer))
+            throw new UnreachableException($"UUID must be {uuidSize} bytes long");
+
+        (uuidBuffer[0], uuidBuffer[3]) = (uuidBuffer[3], uuidBuffer[0]);
+        (uuidBuffer[1], uuidBuffer[2]) = (uuidBuffer[2], uuidBuffer[1]);
+        (uuidBuffer[4], uuidBuffer[5]) = (uuidBuffer[5], uuidBuffer[4]);
+        (uuidBuffer[6], uuidBuffer[7]) = (uuidBuffer[7], uuidBuffer[6]);
     }
 
     public static void WriteVector2(ref this BufferWriter writer, Vector2 value)
@@ -95,5 +115,12 @@ public static class BufferWriterExtensions
         writer.WriteFloat(value.X);
         writer.WriteFloat(value.Y);
         writer.WriteFloat(value.Z);
+    }
+
+    public static void WriteVarIntArray<T>(ref this BufferWriter writer, ReadOnlySpan<T> array, BufferWriter.Writer<T> writerDelegate)
+    {
+        writer.WriteVarInt(array.Length);
+        foreach (var value in array)
+            writerDelegate(ref writer, value);
     }
 }
