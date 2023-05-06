@@ -29,8 +29,8 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
 
     private Identifier(ReadOnlySpan<char> @namespace, ReadOnlySpan<char> path)
     {
-        Debug.Assert(IsAllowedNamespace(@namespace), "IsAllowedNamespace(namespace)");
-        Debug.Assert(IsAllowedPath(path), "IsAllowedPath(path)");
+        Debug.Assert(IsValidNamespace(@namespace), "IsValidNamespace(namespace)");
+        Debug.Assert(IsValidPath(path), "IsValidPath(path)");
 
         var separatorSpan = new ReadOnlySpan<char>(Separator);
         _key = string.Concat(@namespace, separatorSpan, path);
@@ -69,21 +69,21 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
     }
 
     /// <summary>
-    ///     Indicates whether the specified character is allowed in a namespace.
+    ///     Indicates whether the specified character is a valid namespace character.
     /// </summary>
     /// <param name="c">The character to test.</param>
-    /// <returns>true if <paramref name="c"/> is allowed in a namespace; otherwise, false.</returns>
-    public static bool IsAllowedNamespace(char c)
+    /// <returns>true if <paramref name="c"/> is a valid namespace character; otherwise, false.</returns>
+    public static bool IsValidNamespace(char c)
     {
         return char.IsAsciiLetterOrDigit(c) || c == '_' || c == '-' || c == '.';
     }
 
     /// <summary>
-    ///     Indicates whether the specified character is allowed in a path.
+    ///     Indicates whether the specified character is a valid path character.
     /// </summary>
     /// <param name="c">The character to test.</param>
-    /// <returns>true if <paramref name="c"/> is allowed in a path; otherwise, false.</returns>
-    public static bool IsAllowedPath(char c)
+    /// <returns>true if <paramref name="c"/> is a valid path character; otherwise, false.</returns>
+    public static bool IsValidPath(char c)
     {
         return char.IsAsciiLetterOrDigit(c) || c == '_' || c == '-' || c == '.' || c == '/';
     }
@@ -93,11 +93,11 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
     /// </summary>
     /// <param name="input">The string to test.</param>
     /// <returns>true if <paramref name="input"/> is a valid namespace; otherwise, false.</returns>
-    public static bool IsAllowedNamespace(ReadOnlySpan<char> input)
+    public static bool IsValidNamespace(ReadOnlySpan<char> input)
     {
         foreach (var c in input)
         {
-            if (IsAllowedNamespace(c))
+            if (IsValidNamespace(c))
                 continue;
 
             return false;
@@ -111,11 +111,11 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
     /// </summary>
     /// <param name="input">The string to test.</param>
     /// <returns>true if <paramref name="input"/> is a valid path; otherwise, false.</returns>
-    public static bool IsAllowedPath(ReadOnlySpan<char> input)
+    public static bool IsValidPath(ReadOnlySpan<char> input)
     {
         foreach (var c in input)
         {
-            if (IsAllowedPath(c))
+            if (IsValidPath(c))
                 continue;
 
             return false;
@@ -131,14 +131,14 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
     /// <param name="path">The path.</param>
     /// <returns>An <see cref="Identifier"/> created from the <paramref name="namespace"/> and <paramref name="path"/>.</returns>
     /// <exception cref="FormatException"><paramref name="namespace"/> and/or <paramref name="path"/> are not in the correct format.</exception>
-    /// <seealso cref="IsAllowedNamespace(ReadOnlySpan{char})"/>
-    /// <seealso cref="IsAllowedPath(ReadOnlySpan{char})"/>
+    /// <seealso cref="IsValidNamespace(ReadOnlySpan{char})"/>
+    /// <seealso cref="IsValidPath(ReadOnlySpan{char})"/>
     public static Identifier Create(ReadOnlySpan<char> @namespace, ReadOnlySpan<char> path)
     {
-        if (!IsAllowedNamespace(@namespace))
+        if (!IsValidNamespace(@namespace))
             throw new FormatException($"Invalid namespace {@namespace} (must be [a-z0-9_-.])");
 
-        if (!IsAllowedPath(path))
+        if (!IsValidPath(path))
             throw new FormatException($"Invalid path {path} (must be [a-z0-9_-./])");
 
         return new Identifier(@namespace, path);
@@ -179,13 +179,13 @@ public readonly struct Identifier : IEquatable<Identifier>, IEqualityOperators<I
     {
         Decompose(input, out var @namespace, out var path);
 
-        if (!IsAllowedNamespace(@namespace))
+        if (!IsValidNamespace(@namespace))
         {
             result = default;
             return false;
         }
 
-        if (!IsAllowedPath(path))
+        if (!IsValidPath(path))
         {
             result = default;
             return false;

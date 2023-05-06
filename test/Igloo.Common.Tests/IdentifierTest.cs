@@ -5,9 +5,9 @@ namespace Igloo.Common.Tests;
 public class IdentifierTest
 {
     [Fact]
-    public void IsAllowedNamespace_InputIsDefaultNamespace_ReturnsTrue()
+    public void IsValidNamespace_InputIsDefaultNamespace_ReturnsTrue()
     {
-        var allowed = Identifier.IsAllowedNamespace(Minecraft.Namespace);
+        var allowed = Identifier.IsValidNamespace(Minecraft.Namespace);
         Assert.True(allowed);
     }
 
@@ -16,9 +16,9 @@ public class IdentifierTest
     [InlineData("some-dashes")]
     [InlineData("some.period")]
     [InlineData("combined_underscore-dash.period")]
-    public void IsAllowedNamespace_ValuesContainsValidChar_ReturnsTrue(string @namespace)
+    public void IsValidNamespace_ValuesContainsValidChar_ReturnsTrue(string @namespace)
     {
-        var allowed = Identifier.IsAllowedNamespace(@namespace);
+        var allowed = Identifier.IsValidNamespace(@namespace);
         Assert.True(allowed);
     }
 
@@ -26,9 +26,9 @@ public class IdentifierTest
     [InlineData("@namespace")]
     [InlineData("forward/slash")]
     [InlineData("two/forward/slashes")]
-    public void IsAllowedNamespace_ValuesContainsInvalidChar_ReturnsFalse(string @namespace)
+    public void IsValidNamespace_ValuesContainsInvalidChar_ReturnsFalse(string @namespace)
     {
-        var allowed = Identifier.IsAllowedNamespace(@namespace);
+        var allowed = Identifier.IsValidNamespace(@namespace);
         Assert.False(allowed);
     }
 
@@ -38,18 +38,18 @@ public class IdentifierTest
     [InlineData("stone-block")]
     [InlineData("color/red")]
     [InlineData("deep/hierarchy/chain")]
-    public void IsAllowedPath_ValuesContainsValidChar_ReturnsTrue(string path)
+    public void IsValidPath_ValuesContainsValidChar_ReturnsTrue(string path)
     {
-        var allowed = Identifier.IsAllowedPath(path);
+        var allowed = Identifier.IsValidPath(path);
         Assert.True(allowed);
     }
 
     [Theory]
     [InlineData("stone@")]
     [InlineData("stone:block")]
-    public void IsAllowedPath_ValuesContainsInvalidChar_ReturnsFalse(string path)
+    public void IsValidPath_ValuesContainsInvalidChar_ReturnsFalse(string path)
     {
-        var allowed = Identifier.IsAllowedPath(path);
+        var allowed = Identifier.IsValidPath(path);
         Assert.False(allowed);
     }
 
