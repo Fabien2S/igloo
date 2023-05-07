@@ -8,8 +8,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Igloo.Common\Igloo.Common.csproj"/>
-        <ProjectReference Include="..\Igloo.Network\Igloo.Network.csproj"/>
-        <ProjectReference Include="..\Igloo.Players\Igloo.Players.csproj"/>
     </ItemGroup>
 
 </Project>
