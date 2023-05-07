@@ -31,7 +31,7 @@ public class TagTypeCompound : ITagType<TagTypeCompound, TagCompound>
         {
             writer.WriteByte((byte)tag.Id);
             TagTypeString.Serialize(ref writer, key);
-            ITag.WritePayload(ref writer, tag);
+            tag.WritePayload(ref writer);
         }
 
         writer.WriteByte((byte)TagId.End);

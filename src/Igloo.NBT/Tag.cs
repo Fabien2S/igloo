@@ -17,7 +17,7 @@ internal record Tag<TType, TData> : ITag<TData> where TType : ITagType<TType, TD
         Data = data;
     }
 
-    void ITag.WritePayload(ref BufferWriter writer)
+    public void WritePayload(ref BufferWriter writer)
     {
         TType.Serialize(ref writer, this);
     }

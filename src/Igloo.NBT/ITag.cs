@@ -8,14 +8,16 @@ namespace Igloo.NBT;
 /// </summary>
 public interface ITag
 {
-    internal TagId Id { get; }
+    /// <summary>
+    ///     Gets the NBT id.
+    /// </summary>
+    TagId Id { get; }
 
-    protected void WritePayload(ref BufferWriter writer);
-
-    internal static void WritePayload(ref BufferWriter writer, ITag tag)
-    {
-        tag.WritePayload(ref writer);
-    }
+    /// <summary>
+    ///     Write the NBT data.
+    /// </summary>
+    /// <param name="writer">The writer.</param>
+    void WritePayload(ref BufferWriter writer);
 
     internal static ITag ReadPayload(ref BufferReader reader, TagId id)
     {

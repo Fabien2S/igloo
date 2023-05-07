@@ -48,7 +48,7 @@ public class TagTypeList : ITagType<TagTypeList, ITag[]>
         writer.WriteInt(value.Length);
         foreach (var tag in value)
         {
-            ITag.WritePayload(ref writer, tag);
+            tag.WritePayload(ref writer);
         }
     }
 

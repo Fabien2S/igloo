@@ -32,6 +32,6 @@ public static class TagIO
             throw new IOException($"Root tag must be a {nameof(TagId.Compound)} tag");
 
         TagTypeString.Deserialize(ref reader, out _);
-        return (ITag<TagCompound>?)ITag.ReadPayload(ref reader, id);
+        return (ITag<TagCompound>)ITag.ReadPayload(ref reader, id);
     }
 }
