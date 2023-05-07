@@ -11,10 +11,12 @@ public class HandshakeNetworkHandler : INetworkHandler, IPacketHandler<Handshake
     public bool IsAsync => true;
 
     private readonly NetworkConnection _connection;
+    private readonly INetworkListener _listener;
 
-    public HandshakeNetworkHandler(NetworkConnection connection)
+    public HandshakeNetworkHandler(NetworkConnection connection, INetworkListener listener)
     {
         _connection = connection;
+        _listener = listener;
     }
 
     public bool ReceivePacket(int id, ref BufferReader reader, [NotNullWhen(true)] out IPacketInvoker? invoker)
@@ -26,12 +28,16 @@ public class HandshakeNetworkHandler : INetworkHandler, IPacketHandler<Handshake
         };
     }
 
+    public void Tick(in TimeSpan deltaTime)
+    {
+    }
+
     public void Handle(in PacketInHandshake packet)
     {
         switch (packet.RequestedState)
         {
             case PacketInHandshake.State.Login:
-                _connection.Handler = new LoginNetworkHandler(_connection);
+                _connection.SetHandler(new LoginNetworkHandler(_connection, _listener));
                 return;
             case PacketInHandshake.State.Handshake:
             case PacketInHandshake.State.Status:

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 using Igloo.Logging;
 using Igloo.Network.Handlers;
@@ -13,14 +14,10 @@ public partial class NetworkConnection : ITickable
 {
     private static readonly ILogger<NetworkConnection> Logger = LogManager.Create<NetworkConnection>();
 
-    // TODO Rework
-    public INetworkHandler Handler
-    {
-        get => _handler;
-        set => _handler = value ?? throw new ArgumentNullException(nameof(value));
-    }
+    public bool IsClosed => _reason != NetworkReason.Ok;
 
     private readonly Socket _socket;
+    private readonly EndPoint? _endPoint;
     private readonly CancellationTokenSource _cts;
 
     private Task? _readTask;
@@ -29,16 +26,19 @@ public partial class NetworkConnection : ITickable
     private INetworkHandler _handler;
     private NetworkReason _reason;
 
-    public NetworkConnection(Socket socket)
+    public NetworkConnection(Socket socket, INetworkListener listener)
     {
         _socket = socket;
+        _endPoint = socket.RemoteEndPoint;
         _cts = new CancellationTokenSource();
 
-        _handler = new HandshakeNetworkHandler(this);
+        _handler = new HandshakeNetworkHandler(this, listener);
     }
 
     public void Tick(in TimeSpan deltaTime)
     {
+        _handler.Tick(in deltaTime);
+
         var reader = _incomingPackets.Reader;
         while (reader.TryRead(out var packetInvoker))
             packetInvoker.Invoke();
@@ -96,6 +96,11 @@ public partial class NetworkConnection : ITickable
         WaitForClosingAsync(_readTask, _writeTask);
     }
 
+    public void SetHandler(INetworkHandler handler)
+    {
+        _handler = handler;
+    }
+
     public void Send<TPacket>(in TPacket packet) where TPacket : class, IPacketOut<TPacket>
     {
         Logger.LogTrace("Sending packet {} to {}", packet, this);
@@ -105,7 +110,7 @@ public partial class NetworkConnection : ITickable
 
     public void Close(NetworkReason reason)
     {
-        if (_reason != NetworkReason.Ok)
+        if (IsClosed)
             return;
 
         Logger.LogInformation("Closing connection with {} ({})", this, reason);
@@ -115,6 +120,6 @@ public partial class NetworkConnection : ITickable
 
     public override string ToString()
     {
-        return $"NetworkConnection[{_socket.RemoteEndPoint}]";
+        return $"NetworkConnection[{_endPoint}]";
     }
 }

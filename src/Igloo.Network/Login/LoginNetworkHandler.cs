@@ -22,15 +22,17 @@ public class LoginNetworkHandler : INetworkHandler,
     public bool IsAsync => true;
 
     private readonly NetworkConnection _connection;
+    private readonly INetworkListener _listener;
 
     private GameProfile _profile;
     private IPAddress _address;
 
     private State _state;
 
-    public LoginNetworkHandler(NetworkConnection connection)
+    public LoginNetworkHandler(NetworkConnection connection, INetworkListener listener)
     {
         _connection = connection;
+        _listener = listener;
 
         _profile = default;
         _address = IPAddress.None;
@@ -46,6 +48,24 @@ public class LoginNetworkHandler : INetworkHandler,
             0x02 => PacketInvoker<LoginNetworkHandler, PacketInAuthCustomResponse>.Read(ref reader, this, out invoker),
             _ => (invoker = null) == null
         };
+    }
+
+    public void Tick(in TimeSpan deltaTime)
+    {
+        switch (_state)
+        {
+            case State.Invalid:
+                _connection.Close(NetworkReason.AuthenticationError);
+                break;
+            case State.Authenticated:
+                _listener.OnPlayerJoined(_connection, _profile);
+                _state = State.Invalid;
+                break;
+            case State.VanillaRequest:
+            case State.VelocityRequest:
+            default:
+                break;
+        }
     }
 
     public void Handle(in PacketInAuthRequest packet)
@@ -94,12 +114,11 @@ public class LoginNetworkHandler : INetworkHandler,
         Logger.LogTrace("Received auth request from {}: {} ({})", _connection, _profile, _address);
         _connection.Send(new PacketOutAuthSuccess(_profile));
         _state = State.Authenticated;
-
-        // TODO On next server tick, create player
     }
 
     private enum State
     {
+        Invalid,
         VanillaRequest,
         VelocityRequest,
         Authenticated

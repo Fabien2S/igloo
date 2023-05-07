@@ -10,14 +10,19 @@ public class NetworkServer : ITickable, IDisposable
 {
     private static readonly ILogger<NetworkServer> Logger = LogManager.Create<NetworkServer>();
 
+    private readonly INetworkListener _listener;
+
     private readonly Socket _listenSocket;
+    private readonly HashSet<NetworkConnection> _connections;
+
     private readonly CancellationTokenSource _cts;
 
-    private readonly HashSet<NetworkConnection> _connections = new();
-
-    public NetworkServer()
+    public NetworkServer(INetworkListener listener)
     {
+        _listener = listener;
+
         _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        _connections = new HashSet<NetworkConnection>();
         _cts = new CancellationTokenSource();
     }
 
@@ -27,8 +32,16 @@ public class NetworkServer : ITickable, IDisposable
         {
             foreach (var connection in _connections)
             {
+                if (connection.IsClosed)
+                {
+                    Logger.LogInformation("{} disconnected", connection);
+                    continue;
+                }
+
                 connection.Tick(in deltaTime);
             }
+
+            _connections.RemoveWhere(c => c.IsClosed);
         }
     }
 
@@ -79,7 +92,7 @@ public class NetworkServer : ITickable, IDisposable
     {
         Logger.LogInformation("Connection made from {}", clientSocket.RemoteEndPoint);
 
-        var connection = new NetworkConnection(clientSocket);
+        var connection = new NetworkConnection(clientSocket, _listener);
 
         lock (_connections)
         {
@@ -87,15 +100,6 @@ public class NetworkServer : ITickable, IDisposable
         }
 
         connection.Listen();
-    }
-
-    internal void HandleDisconnection(NetworkConnection connection, NetworkReason reason)
-    {
-        Logger.LogInformation("{} disconnected ({})", connection, reason);
-        lock (_connections)
-        {
-            _connections.Remove(connection);
-        }
     }
 
     public void Dispose()

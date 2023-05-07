@@ -1,10 +1,11 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Igloo.Buffers;
 using Igloo.Network.Packets;
+using Igloo.Timings;
 
 namespace Igloo.Network.Handlers;
 
-public interface INetworkHandler
+public interface INetworkHandler : ITickable
 {
     bool IsAsync { get; }
 
