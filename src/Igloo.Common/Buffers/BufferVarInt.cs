@@ -53,7 +53,7 @@ public static class BufferVarInt
         return value;
     }
 
-    public static void WriteVarInt(ref this BufferWriter writer, int value)
+    public static void WriteVarInt(in this BufferWriter writer, int value)
     {
         while (true)
         {
@@ -68,7 +68,7 @@ public static class BufferVarInt
         }
     }
 
-    public static void WriteVarInt(ref this BufferWriter writer, int value, out int byteCount)
+    public static void WriteVarInt(in this BufferWriter writer, int value, out int byteCount)
     {
         byteCount = 1;
 
