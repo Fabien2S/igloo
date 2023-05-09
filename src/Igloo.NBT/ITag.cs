@@ -19,7 +19,7 @@ public interface ITag
     /// <param name="writer">The writer.</param>
     void WritePayload(ref BufferWriter writer);
 
-    internal static ITag ReadPayload(ref BufferReader reader, TagId id)
+    static ITag ReadPayload(ref BufferReader reader, TagId id)
     {
         static ITag ReadTagPayload<TType, TData>(ref BufferReader reader) where TType : ITagType<TType, TData>
         {

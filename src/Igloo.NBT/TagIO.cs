@@ -7,6 +7,13 @@ namespace Igloo.NBT;
 [SuppressMessage("ReSharper", "InconsistentNaming")]
 public static class TagIO
 {
+    public static TagWriter WriteTag(this in BufferWriter writer)
+    {
+        var tagWriter = new TagWriter(writer);
+        tagWriter.WriteHeader(ReadOnlySpan<char>.Empty, TagId.Compound);
+        return tagWriter;
+    }
+
     public static void WriteTag(this ref BufferWriter writer, ITag<TagCompound>? tag)
     {
         if (tag == null)
