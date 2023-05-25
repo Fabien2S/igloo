@@ -39,7 +39,7 @@ public class TagTypeCompound : ITagType<TagTypeCompound, TagCompound>
 
     public static void Deserialize(ref BufferReader reader, out TagCompound value)
     {
-        var entries = new Dictionary<string, ITag>();
+        var entries = new Dictionary<string, ITag>(StringComparer.Ordinal);
 
         TagId id;
         while ((id = (TagId)reader.ReadByte()) != TagId.End)
